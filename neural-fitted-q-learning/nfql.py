@@ -14,17 +14,17 @@ class Agent:
         self.weight_backup = "weights.h5"
         self.state_size = state_size
         self.action_size = action_size
-        self.memory = deque(maxlen=2000)
+        self.memory = deque(maxlen=5000)
         self.learning_rate = 0.001
         self.gamma = 0.95
         self.epsilon = 1.0
-        self.epsilon_min = 0.05
+        self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
         self.model = self._build_model()
 
     def _build_model(self):
         model = Sequential()
-        # NN topology = 4 - 24 - 2
+        # NN topology = 4 - 24 - 24 - 2
         # state size = 4
 
         model.add(Dense(24, input_dim=self.state_size, activation='relu'))
@@ -40,13 +40,13 @@ class Agent:
     def save_model(self):
         self.model.save(self.weight_backup)
 
-    def act(self, state):
+    def get_best_action(self, state):
         if np.random.rand() <= self.epsilon:
             return random.randrange(self.action_size)
         act_values = self.model.predict(state)
         return np.argmax(act_values[0])
 
-    def remember(self, state, action, reward, next_state, done):
+    def save(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
 
     def learn(self, sample_batch_size):
@@ -111,23 +111,23 @@ class Environment:
                 done = False
                 index = 0
                 while not done:
-                    self.env.render()
+                    # self.env.render()
 
-                    action = self.agent.act(state)
+                    action = self.agent.get_best_action(state)
 
                     next_state, reward, done, _ = self.env.step(action)
                     next_state = np.reshape(next_state, [1, self.state_size])
 
                     if not evaluate_mode:
-                        self.agent.remember(state, action, reward, next_state, done)
+                        self.agent.save(state, action, reward, next_state, done)
                     state = next_state
                     index += 1
 
                 if not evaluate_mode:
                     msa = self.agent.learn(self.sample_batch_size)
                     running_msa.append(msa)
-                    if len(running_msa) > 50:
-                        running_msa_avg.append(np.mean(running_msa[-50:]))
+                    # if len(running_msa) > 50:
+                    #    running_msa_avg.append(np.mean(running_msa[-50:]))
                 else:
                     msa = 0
                     running_msa.append(0)
